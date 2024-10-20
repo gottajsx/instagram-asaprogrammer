@@ -10,6 +10,12 @@ To install needed node_modules:
 npm install
 ```
 
+## Install Chakra for Vite
+
+```bash
+npm i @chakra-ui/react @emotion/react @emotion/styled framer-motion
+```
+
 ## Start Project
 
 ```bash
