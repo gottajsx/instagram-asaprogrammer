@@ -1,48 +1,45 @@
 import { useEffect, useState } from "react";
 import usePostStore from "../store/postStore";
-import useAuthStore from "../store/authStore";
 import useShowToast from "./useShowToast";
 import useUserProfileStore from "../store/userProfileStore";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import { firestore } from "../firebase/firebase";
 
-const useGetFeedPosts = () => {
+const useGetUserPosts = () => {
 	const [isLoading, setIsLoading] = useState(true);
 	const { posts, setPosts } = usePostStore();
-	const authUser = useAuthStore((state) => state.user);
 	const showToast = useShowToast();
-	const { setUserProfile } = useUserProfileStore();
+	const userProfile = useUserProfileStore((state) => state.userProfile);
 
 	useEffect(() => {
-		const getFeedPosts = async () => {
+		const getPosts = async () => {
+			if (!userProfile) return;
 			setIsLoading(true);
-			if (authUser.following.length === 0) {
-				setIsLoading(false);
-				setPosts([]);
-				return;
-			}
-			const q = query(collection(firestore, "posts"), where("createdBy", "in", authUser.following));
-			try {
-				const querySnapshot = await getDocs(q);
-				const feedPosts = [];
+			setPosts([]);
 
+			try {
+				const q = query(collection(firestore, "posts"), where("createdBy", "==", userProfile.uid));
+				const querySnapshot = await getDocs(q);
+
+				const posts = [];
 				querySnapshot.forEach((doc) => {
-					feedPosts.push({ id: doc.id, ...doc.data() });
+					posts.push({ ...doc.data(), id: doc.id });
 				});
 
-				feedPosts.sort((a, b) => b.createdAt - a.createdAt);
-				setPosts(feedPosts);
+				posts.sort((a, b) => b.createdAt - a.createdAt);
+				setPosts(posts);
 			} catch (error) {
 				showToast("Error", error.message, "error");
+				setPosts([]);
 			} finally {
 				setIsLoading(false);
 			}
 		};
 
-		if (authUser) getFeedPosts();
-	}, [authUser, showToast, setPosts, setUserProfile]);
+		getPosts();
+	}, [setPosts, userProfile, showToast]);
 
 	return { isLoading, posts };
 };
 
-export default useGetFeedPosts;
+export default useGetUserPosts;
